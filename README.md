@@ -1,6 +1,6 @@
 # Blockchain-Based Healthcare Data Management System
 
-A decentralized healthcare data management system built on Ethereum that allows patients to control access to their medical records, doctors to create records with patient consent, and admins to manage the system — all enforced by smart contracts.
+A decentralized healthcare data management system built on Ethereum that allows patients to control access to their medical records, doctors to create records with patient consent, and admins to manage the system - all enforced by smart contracts.
 
 **🌐 Live demo:** https://healthchain-eight.vercel.app (deployed on Sepolia testnet)
 
@@ -172,7 +172,7 @@ Routes are protected by the `RoleGuard` component which checks the connected wal
 
 ## Roles in the System
 
-The dApp has **three roles**, all derived from the Ethereum address connected via MetaMask. There are no usernames or passwords — your wallet *is* your identity.
+The dApp has **three roles**, all derived from the Ethereum address connected via MetaMask. There are no usernames or passwords — your wallet is your identity.
 
 | Role        | What they can do                                                                  | How to become one                                                                |
 | ----------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
