@@ -1,5 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { Paperclip, Check } from "lucide-react";
 import { uploadToIPFS } from "../../utils/ipfs";
 
 export default function FileUpload({ onUploaded }) {
@@ -23,27 +24,31 @@ export default function FileUpload({ onUploaded }) {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-600 mb-1.5">
-        Attach File (optional)
+      <label className="block font-mono-data text-[10px] uppercase tracking-[0.18em] text-[var(--hc-text-dim)] mb-2">
+        Attach File <span className="text-[var(--hc-text-mute)] normal-case tracking-normal">(optional)</span>
       </label>
-      <div className="relative">
+      <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-[var(--hc-border-strong)] bg-black/20 hover:bg-black/40 hover:border-teal-300/50 transition-all cursor-pointer">
+        <Paperclip size={14} className="text-teal-300" />
+        <span className="font-mono-data text-[11px] text-[var(--hc-text-dim)] truncate">
+          {fileName || "Click to select a file · uploads to IPFS"}
+        </span>
         <input
           type="file"
           onChange={handleUpload}
           disabled={uploading}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 file:cursor-pointer file:transition-colors"
+          className="hidden"
         />
-      </div>
+      </label>
       {uploading && (
-        <div className="flex items-center gap-2 mt-2 text-xs text-blue-600">
-          <span className="w-3 h-3 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-          Uploading to IPFS...
+        <div className="flex items-center gap-2 mt-2 font-mono-data text-[10px] uppercase tracking-[0.16em] text-teal-200">
+          <span className="w-3 h-3 border-2 border-teal-300/30 border-t-teal-200 rounded-full animate-spin" />
+          Uploading to IPFS…
         </div>
       )}
       {fileName && !uploading && (
-        <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-          <span>✓</span> Uploaded: {fileName}
-        </p>
+        <div className="flex items-center gap-2 mt-2 font-mono-data text-[10px] uppercase tracking-[0.16em] text-emerald-300">
+          <Check size={11} /> Uploaded · {fileName}
+        </div>
       )}
     </div>
   );

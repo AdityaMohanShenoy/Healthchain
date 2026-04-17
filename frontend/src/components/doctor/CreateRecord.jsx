@@ -1,6 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { FilePlus2 } from "lucide-react";
+import { FilePlus2, ArrowRight } from "lucide-react";
 import { useWeb3 } from "../../context/Web3Context";
 import FileUpload from "../shared/FileUpload";
 
@@ -37,74 +37,85 @@ export default function CreateRecord({ patient, onCreated }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-          <FilePlus2 size={20} />
+    <div className="hc-card p-7">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-11 h-11 rounded-xl border border-teal-300/30 bg-teal-400/10 flex items-center justify-center text-teal-200">
+          <FilePlus2 size={18} />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-gray-800">Create Record</h2>
-          <p className="text-xs text-gray-400 font-mono">
-            Patient: {patient.slice(0, 6)}...{patient.slice(-4)}
+          <p className="font-mono-data text-[10px] uppercase tracking-[0.2em] text-[var(--hc-text-mute)]">
+            Action · 02
+          </p>
+          <h2 className="font-display text-xl text-white">Create Record</h2>
+          <p className="font-mono-data text-[10px] uppercase tracking-[0.16em] text-teal-300 mt-0.5">
+            Patient · {patient.slice(0, 6)}…{patient.slice(-4)}
           </p>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">Diagnosis</label>
+          <label className="block font-mono-data text-[10px] uppercase tracking-[0.18em] text-[var(--hc-text-dim)] mb-2">
+            Diagnosis
+          </label>
           <input
             type="text"
-            placeholder="e.g. Common Cold, Hypertension..."
+            placeholder="e.g. Common Cold, Hypertension…"
             value={form.diagnosis}
             onChange={(e) => setForm({ ...form, diagnosis: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+            className="hc-input"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">Prescription</label>
+          <label className="block font-mono-data text-[10px] uppercase tracking-[0.18em] text-[var(--hc-text-dim)] mb-2">
+            Prescription
+          </label>
           <input
             type="text"
-            placeholder="e.g. Paracetamol 500mg, Rest..."
+            placeholder="e.g. Paracetamol 500mg, Rest…"
             value={form.prescription}
             onChange={(e) => setForm({ ...form, prescription: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+            className="hc-input"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">Notes (optional)</label>
+          <label className="block font-mono-data text-[10px] uppercase tracking-[0.18em] text-[var(--hc-text-dim)] mb-2">
+            Notes <span className="text-[var(--hc-text-mute)] normal-case tracking-normal">(optional)</span>
+          </label>
           <textarea
-            placeholder="Additional notes or observations..."
+            placeholder="Additional notes or observations…"
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+            className="hc-input resize-none"
             rows={3}
           />
         </div>
+
         <FileUpload onUploaded={setIpfsHash} />
+
         {ipfsHash && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 text-xs px-3 py-2 rounded-lg font-mono break-all">
-            IPFS CID: {ipfsHash}
+          <div className="px-3 py-2 rounded-md border border-teal-300/30 bg-teal-400/5 font-mono-data text-[10px] text-teal-200 break-all">
+            <span className="uppercase tracking-[0.16em] text-[var(--hc-text-mute)] mr-2">IPFS CID</span>
+            {ipfsHash}
           </div>
         )}
-        <button
-          type="submit"
-          disabled={status === "pending"}
-          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2.5 rounded-xl font-medium shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+
+        <button type="submit" disabled={status === "pending"} className="hc-btn w-full">
           {status === "pending" ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Creating Record...
-            </span>
+            <>
+              <span className="w-3.5 h-3.5 border-2 border-black/40 border-t-black rounded-full animate-spin" />
+              Broadcasting
+            </>
           ) : (
-            "Create Record"
+            <>Create Record <ArrowRight size={15} /></>
           )}
         </button>
+
         {status === "success" && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2.5 rounded-xl animate-slide-down">
-            Record created successfully!
+          <div className="font-mono-data text-[10px] uppercase tracking-[0.18em] text-emerald-300 flex items-center gap-2">
+            <span className="hc-dot" /> Record committed on-chain
           </div>
         )}
       </form>
