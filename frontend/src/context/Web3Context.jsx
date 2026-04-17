@@ -10,6 +10,86 @@ import RecordStorageABI from "../abis/RecordStorage.json";
 const Web3Context = createContext(null);
 
 const ROLE_NAMES = { 0: "none", 1: "admin", 2: "doctor", 3: "patient" };
+const GAS_LIMIT_BUFFER_PERCENT = 20;
+
+async function populateWriteTransaction(transaction, signer, readProvider) {
+  const from = await signer.getAddress();
+  const tx = await ethers.utils.resolveProperties({ ...transaction });
+
+  if (tx.from && tx.from.toLowerCase() !== from.toLowerCase()) {
+    throw new Error("Transaction from address does not match connected wallet");
+  }
+
+  tx.from = from;
+
+  if (tx.to) {
+    const resolvedTo = await readProvider.resolveName(tx.to);
+    if (!resolvedTo) {
+      throw new Error("Transaction recipient could not be resolved");
+    }
+    tx.to = resolvedTo;
+  }
+
+  const [network, nonce, feeData] = await Promise.all([
+    readProvider.getNetwork(),
+    tx.nonce == null ? readProvider.getTransactionCount(from, "pending") : tx.nonce,
+    tx.gasPrice == null || tx.maxFeePerGas == null || tx.maxPriorityFeePerGas == null
+      ? readProvider.getFeeData()
+      : null,
+  ]);
+
+  if (tx.chainId == null) {
+    tx.chainId = network.chainId;
+  } else if (Number(tx.chainId) !== network.chainId) {
+    throw new Error(`Transaction chainId ${tx.chainId} does not match RPC chainId ${network.chainId}`);
+  }
+
+  if (tx.nonce == null) {
+    tx.nonce = nonce;
+  }
+
+  const wantsLegacyFee = tx.type === 0 || tx.type === 1 || tx.gasPrice != null;
+  if (wantsLegacyFee) {
+    if (tx.gasPrice == null) {
+      tx.gasPrice = feeData?.gasPrice || (await readProvider.getGasPrice());
+    }
+    if (tx.type == null) {
+      tx.type = 0;
+    }
+    delete tx.maxFeePerGas;
+    delete tx.maxPriorityFeePerGas;
+  } else {
+    if (tx.type == null) {
+      tx.type = 2;
+    }
+    if (tx.maxFeePerGas == null) {
+      tx.maxFeePerGas = feeData?.maxFeePerGas || feeData?.gasPrice || (await readProvider.getGasPrice());
+    }
+    if (tx.maxPriorityFeePerGas == null) {
+      tx.maxPriorityFeePerGas =
+        feeData?.maxPriorityFeePerGas || feeData?.gasPrice || tx.maxFeePerGas;
+    }
+  }
+
+  if (tx.gasLimit == null) {
+    const estimatedGas = await readProvider.estimateGas(tx);
+    tx.gasLimit = estimatedGas.mul(100 + GAS_LIMIT_BUFFER_PERCENT).div(100);
+  }
+
+  return tx;
+}
+
+function withAlchemyWritePopulation(signer, readProvider) {
+  if (!readProvider) return signer;
+
+  const originalSendTransaction = signer.sendTransaction.bind(signer);
+  signer.sendTransaction = async (transaction) => {
+    const populated = await populateWriteTransaction(transaction, signer, readProvider);
+    return originalSendTransaction(populated);
+  };
+
+  return signer;
+}
 
 export function Web3Provider({ children }) {
   const [account, setAccount] = useState(null);
@@ -25,8 +105,9 @@ export function Web3Provider({ children }) {
 
       // Route read calls through Alchemy directly, bypassing MetaMask's flaky RPC
       const ALCHEMY_URL = import.meta.env.VITE_SEPOLIA_RPC_URL;
+      let readProvider = null;
       if (ALCHEMY_URL) {
-        const readProvider = new ethers.providers.StaticJsonRpcProvider(ALCHEMY_URL);
+        readProvider = new ethers.providers.StaticJsonRpcProvider(ALCHEMY_URL);
         const originalSend = prov.send.bind(prov);
         const READ_METHODS = new Set([
           "eth_call",
@@ -52,7 +133,7 @@ export function Web3Provider({ children }) {
         };
       }
 
-      const sign = prov.getSigner();
+      const sign = withAlchemyWritePopulation(prov.getSigner(), readProvider);
       const addr = await sign.getAddress();
 
       const c = {
