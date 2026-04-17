@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ScrollText, Inbox, Terminal } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ScrollText, Inbox, Terminal, Download, Filter, ExternalLink, X } from "lucide-react";
 import { useWeb3 } from "../../context/Web3Context";
 
 const ACTION_LABELS = [
@@ -25,6 +25,56 @@ export default function AuditLog({ title = "Audit Log", showAll = false, variant
   const { account, contracts } = useWeb3();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionFilter, setActionFilter] = useState("all");
+  const [addrFilter, setAddrFilter] = useState("");
+
+  const filtered = useMemo(() => {
+    return entries.filter((e) => {
+      if (actionFilter !== "all" && Number(e.actionType) !== Number(actionFilter)) return false;
+      if (addrFilter) {
+        const q = addrFilter.toLowerCase();
+        if (!e.performer.toLowerCase().includes(q) && !e.subject.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [entries, actionFilter, addrFilter]);
+
+  const toCSV = (rows) => {
+    const header = "index,action,performer,subject,details,timestamp,iso\n";
+    const body = rows
+      .map((e, i) => {
+        const ts = Number(e.timestamp);
+        const action = ACTION_LABELS[Number(e.actionType)] || "Unknown";
+        const details = String(e.details || "").replace(/"/g, '""');
+        return `${i + 1},"${action}",${e.performer},${e.subject},"${details}",${ts},"${new Date(ts * 1000).toISOString()}"`;
+      })
+      .join("\n");
+    return header + body;
+  };
+
+  const download = (content, filename, type) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCSV = () => download(toCSV(filtered), `audit-${Date.now()}.csv`, "text/csv");
+  const exportJSON = () => {
+    const data = filtered.map((e, i) => ({
+      index: i + 1,
+      action: ACTION_LABELS[Number(e.actionType)] || "Unknown",
+      performer: e.performer,
+      subject: e.subject,
+      details: e.details,
+      timestamp: Number(e.timestamp),
+      iso: new Date(Number(e.timestamp) * 1000).toISOString(),
+    }));
+    download(JSON.stringify(data, null, 2), `audit-${Date.now()}.json`, "application/json");
+  };
 
   useEffect(() => {
     if (!contracts || !account) return;
@@ -77,12 +127,63 @@ export default function AuditLog({ title = "Audit Log", showAll = false, variant
             </div>
           </div>
           <div className="flex items-center gap-4 font-mono-data text-[10px] uppercase tracking-[0.18em] text-[var(--hc-text-dim)]">
-            <span><span className="text-teal-300">{entries.length}</span> entries</span>
+            <span>
+              <span className="text-teal-300">{filtered.length}</span>
+              {filtered.length !== entries.length && <span className="text-[var(--hc-text-mute)]"> / {entries.length}</span>} entries
+            </span>
             <span className="flex items-center gap-2">
               <span className="hc-dot" /> tail -f
             </span>
           </div>
         </div>
+
+        {showAll && (
+          <div className="relative flex flex-wrap items-center gap-2 mb-5">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-teal-300/20 bg-black/30">
+              <Filter size={11} className="text-teal-300" />
+              <select
+                value={actionFilter}
+                onChange={(e) => setActionFilter(e.target.value)}
+                className="bg-transparent font-mono-data text-[11px] text-teal-100 outline-none cursor-pointer pr-2"
+              >
+                <option value="all" className="bg-[#050b15]">All Actions</option>
+                {ACTION_LABELS.map((l, i) => (
+                  <option key={i} value={i} className="bg-[#050b15]">{l}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-teal-300/20 bg-black/30">
+              <input
+                value={addrFilter}
+                onChange={(e) => setAddrFilter(e.target.value)}
+                placeholder="Filter by address (performer or subject)"
+                className="bg-transparent font-mono-data text-[11px] text-teal-100 outline-none flex-1 placeholder:text-[var(--hc-text-mute)]"
+              />
+              {addrFilter && (
+                <button
+                  onClick={() => setAddrFilter("")}
+                  className="text-[var(--hc-text-mute)] hover:text-rose-300"
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={exportCSV}
+              disabled={!filtered.length}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-300/30 bg-teal-400/5 hover:bg-teal-400/10 font-mono-data text-[10px] uppercase tracking-[0.16em] text-teal-200 disabled:opacity-40 transition-all"
+            >
+              <Download size={11} /> CSV
+            </button>
+            <button
+              onClick={exportJSON}
+              disabled={!filtered.length}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-300/30 bg-teal-400/5 hover:bg-teal-400/10 font-mono-data text-[10px] uppercase tracking-[0.16em] text-teal-200 disabled:opacity-40 transition-all"
+            >
+              <Download size={11} /> JSON
+            </button>
+          </div>
+        )}
 
         <div className="relative font-mono-data text-[12px]">
           <div className="text-teal-300/80 mb-3">
@@ -99,10 +200,12 @@ export default function AuditLog({ title = "Audit Log", showAll = false, variant
                 <div key={i} className="h-5 rounded bg-teal-300/5 animate-pulse" />
               ))}
             </div>
-          ) : entries.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="text-center py-10 text-[var(--hc-text-mute)]">
               <Inbox size={28} className="mx-auto mb-2 opacity-40" />
-              <p className="text-[11px] uppercase tracking-wider">No entries · stream idle</p>
+              <p className="text-[11px] uppercase tracking-wider">
+                {entries.length === 0 ? "No entries · stream idle" : "No entries match filters"}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto -mx-2">
@@ -118,8 +221,8 @@ export default function AuditLog({ title = "Audit Log", showAll = false, variant
                   </tr>
                 </thead>
                 <tbody className="text-[12px]">
-                  {entries.map((e, i) => {
-                    const idx = entries.length - i;
+                  {filtered.map((e, i) => {
+                    const idx = filtered.length - i;
                     return (
                       <tr
                         key={i}
@@ -133,11 +236,27 @@ export default function AuditLog({ title = "Audit Log", showAll = false, variant
                             {ACTION_LABELS[Number(e.actionType)] || "UNKNOWN"}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-teal-200">
-                          {e.performer.slice(0, 6)}…{e.performer.slice(-4)}
+                        <td className="py-2.5 px-3">
+                          <a
+                            href={`https://sepolia.etherscan.io/address/${e.performer}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-teal-200 hover:text-teal-100 hover:underline"
+                          >
+                            {e.performer.slice(0, 6)}…{e.performer.slice(-4)}
+                            <ExternalLink size={9} className="opacity-60" />
+                          </a>
                         </td>
-                        <td className="py-2.5 px-3 text-teal-200">
-                          {e.subject.slice(0, 6)}…{e.subject.slice(-4)}
+                        <td className="py-2.5 px-3">
+                          <a
+                            href={`https://sepolia.etherscan.io/address/${e.subject}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-teal-200 hover:text-teal-100 hover:underline"
+                          >
+                            {e.subject.slice(0, 6)}…{e.subject.slice(-4)}
+                            <ExternalLink size={9} className="opacity-60" />
+                          </a>
                         </td>
                         <td className="py-2.5 px-3 text-[var(--hc-text-dim)] max-w-[260px] truncate">
                           {e.details || "—"}

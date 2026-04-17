@@ -3,6 +3,9 @@ import { Activity, Copy, Check, Shield, Cpu } from "lucide-react";
 import { useWeb3 } from "../context/Web3Context";
 import RegisterDoctor from "../components/admin/RegisterDoctor";
 import SystemStats from "../components/admin/SystemStats";
+import Registry from "../components/admin/Registry";
+import RoleLookup from "../components/admin/RoleLookup";
+import ContractDirectory from "../components/admin/ContractDirectory";
 import AuditLog from "../components/shared/AuditLog";
 
 function useFakeBlockHeight() {
@@ -104,13 +107,28 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ============ AUDIT LOG ============ */}
+        {/* ============ REGISTRY ============ */}
         <div className="hc-rise hc-d-4">
+          <Registry />
+        </div>
+
+        {/* ============ LOOKUP + CONTRACTS ============ */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="hc-rise hc-d-5">
+            <RoleLookup />
+          </div>
+          <div className="hc-rise hc-d-5">
+            <ContractDirectory />
+          </div>
+        </div>
+
+        {/* ============ AUDIT LOG ============ */}
+        <div className="hc-rise hc-d-6">
           <AuditLog title="System Audit Log" showAll={true} variant="terminal" />
         </div>
 
         {/* ============ FOOTER STATUS BAR ============ */}
-        <footer className="hc-rise hc-d-5 mt-10 border-t border-[var(--hc-border)] pt-5 flex flex-wrap items-center justify-between gap-4 text-[10px] uppercase tracking-[0.2em] font-mono-data text-[var(--hc-text-mute)]">
+        <footer className="hc-rise hc-d-6 mt-10 border-t border-[var(--hc-border)] pt-5 flex flex-wrap items-center justify-between gap-4 text-[10px] uppercase tracking-[0.2em] font-mono-data text-[var(--hc-text-mute)]">
           <div className="flex items-center gap-5">
             <span className="flex items-center gap-2"><span className="hc-dot" /> RPC Healthy</span>
             <span>Chain · 11155111</span>
